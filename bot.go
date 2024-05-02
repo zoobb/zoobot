@@ -9,7 +9,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
+
+// https://api.telegram.org/bot<token>/METHOD_NAME
 
 func init() {
 	if err := godotenv.Load(); err != nil {
@@ -18,15 +21,23 @@ func init() {
 }
 
 func main() {
-	//fmt.Println("Hello World")
+	offset := 0
+	for {
+		updates, err := getUpdates(offset)
+		if err != nil {
+			log.Println(err)
+		}
 
-	// https://api.telegram.org/bot<token>/METHOD_NAME
-	botURL := "https://api.telegram.org/bot" + os.Getenv("BOT_TOKEN")
-	fmt.Println(getUpdates(botURL))
+		for _, update := range updates {
+			fmt.Println(update.Message.Text)
+			offset = update.UpdateID + 1
+		}
+		time.Sleep(10)
+	}
 }
 
-func getUpdates(botURL string) ([]types.Update, error) {
-	resp, err := http.Get(botURL + "/getUpdates")
+func getUpdates(offset int) ([]types.Update, error) {
+	resp, err := http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/getUpdates?offset=%d", os.Getenv("BOT_TOKEN"), offset))
 	if err != nil {
 		return nil, err
 	}

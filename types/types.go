@@ -6,7 +6,8 @@ type Update struct {
 }
 
 type Message struct {
-	MessageID int `json:"message_id"`
+	MessageID int    `json:"message_id"`
+	Text      string `json:"text"`
 }
 
 type Response struct {
