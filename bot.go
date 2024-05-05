@@ -1,13 +1,16 @@
 package main
 
 import (
-	"fmt"
-	"github.com/ZubovSL/zoobot/requests"
 	"github.com/joho/godotenv"
 	"log"
+	"os"
 )
 
 // https://api.telegram.org/bot<token>/METHOD_NAME
+
+type Bot struct {
+	Token string `json:"token"`
+}
 
 func init() {
 	if err := godotenv.Load(); err != nil {
@@ -15,11 +18,17 @@ func init() {
 	}
 }
 
-func main() {
-	update := Polling(10)
-	resp, err := requests.SendMessage(update.Message.Chat.ID, "boop")
-	if err != nil {
-		log.Fatal(err)
+func bot() Bot {
+	bot := Bot{
+		Token: os.Getenv("BOT_TOKEN"),
 	}
-	fmt.Println(resp)
+	return bot
+}
+
+func (bot *Bot) SendMessage(target int, text string) {
+
+}
+
+func main() {
+
 }
