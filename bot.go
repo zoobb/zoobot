@@ -97,7 +97,7 @@ func getUpdates(token string, offset int, timeout int) ([]Update, error) {
 	}
 
 	//resp, err := http.DefaultClient.Do(req)
-	fmt.Println(resp, err)
+	//fmt.Println(resp, err)
 
 	defer resp.Body.Close()
 
