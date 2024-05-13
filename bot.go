@@ -71,10 +71,26 @@ func main() {
 		for _, update := range updates {
 			offset = update.UpdateID + 1
 
-			fmt.Println(update.Message.Text)
-			_, err := sendMessage(update.Message.Chat.ID, update.Message.Text)
-			if err != nil {
-				return
+			// Echo
+			/* _, err := sendMessage(update.Message.Chat.ID, update.Message.Text)
+			      if err != nil {
+			   			return
+			      }
+			      fmt.Println(update.Message.Text) */
+
+			command := update.Message.Text
+
+			switch command {
+			case "дарова":
+				_, err := sendMessage(update.Message.Chat.ID, "буп")
+				if err != nil {
+					fmt.Println(err.Error())
+				}
+			default:
+				_, err := sendMessage(update.Message.Chat.ID, "я хз что ты от меня хочешь...")
+				if err != nil {
+					fmt.Println(err.Error())
+				}
 			}
 		}
 	}
