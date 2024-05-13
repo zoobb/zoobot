@@ -58,7 +58,6 @@ func init() {
 
 func main() {
 	var offset = 0
-
 	for {
 		updates, err := getUpdates(os.Getenv("BOT_TOKEN"), offset, 60)
 		if err != nil {
@@ -73,6 +72,10 @@ func main() {
 			offset = update.UpdateID + 1
 
 			fmt.Println(update.Message.Text)
+			_, err := sendMessage(update.Message.Chat.ID, update.Message.Text)
+			if err != nil {
+				return
+			}
 		}
 	}
 
@@ -112,4 +115,36 @@ func getUpdates(token string, offset int, timeout int) ([]Update, error) {
 	}
 
 	return r.Result, nil
+}
+
+func sendMessage(chatID int, text string) (Message, error) {
+	var q = make(url.Values)
+	q.Set("chat_id", strconv.Itoa(chatID))
+	q.Set("text", text)
+
+	var u = url.URL{
+		Scheme:   "https",
+		Host:     "api.telegram.org",
+		Path:     fmt.Sprintf("bot%s/%s", os.Getenv("BOT_TOKEN"), "sendMessage"),
+		RawQuery: q.Encode(),
+	}
+
+	resp, err := http.Get(u.String())
+	if err != nil {
+		return Message{}, err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return Message{}, err
+	}
+
+	var r Message
+	if err := json.Unmarshal(body, &r); err != nil {
+		return Message{}, err
+	}
+
+	return r, nil
 }
