@@ -1,19 +1,8 @@
 package bot
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io"
 	"log"
-	"math/rand"
-	"mime/multipart"
-	"net/http"
-	"net/url"
-	"os"
-	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -60,7 +49,7 @@ func NewBot(botToken string, pollingTimeoutSeconds int, picsFolder string) error
 	log.Println("ZOOBOT STARTED")
 	var offset = 0
 	for {
-		updates, err := getUpdates(botToken, offset, pollingTimeoutSeconds)
+		updates, err := GetUpdates(botToken, offset, pollingTimeoutSeconds)
 		if err != nil {
 			log.Println(err.Error())
 			continue
@@ -83,21 +72,21 @@ func NewBot(botToken string, pollingTimeoutSeconds int, picsFolder string) error
 			pic, _ := regexp.MatchString(`(?i)(gimme a pic)`, command)
 
 			if greetings {
-				_, err := sendMessage(update.Message.Chat.ID, "hi!\n!")
+				_, err := SendMessage(update.Message.Chat.ID, "hi!\n!")
 				if err != nil {
 					log.Println(err.Error())
 				}
 			} else if pic {
-				p, err := randomPic(picsFolder)
+				p, err := RandomPic(picsFolder)
 				if err != nil {
 					log.Println(err.Error())
 				}
-				_, err = sendPhoto(update.Message.Chat.ID, p)
+				_, err = SendPhoto(update.Message.Chat.ID, p)
 				if err != nil {
 					log.Println(err.Error())
 				}
 			} else {
-				_, err := sendMessage(update.Message.Chat.ID, "i don't know what do you want from me...")
+				_, err := SendMessage(update.Message.Chat.ID, "i don't know what do you want from me...")
 				if err != nil {
 					log.Println(err.Error())
 				}
@@ -108,158 +97,4 @@ func NewBot(botToken string, pollingTimeoutSeconds int, picsFolder string) error
 			}
 		}
 	}
-}
-
-func randomPic(path string) (string, error) {
-	files, err := os.ReadDir(path)
-	if err != nil {
-		return "", err
-	}
-	rand.Seed(time.Now().UnixNano())
-
-	randomIndex := rand.Intn(len(files))
-	randomFileName := files[randomIndex].Name()
-
-	fullPath := filepath.Join(path, randomFileName)
-
-	return fullPath, nil
-}
-
-// WIP
-// todo rawRequest
-func rawRequest(httpMethod string, url string, body io.Reader) ([]byte, error) {
-	resp, err := http.NewRequest(httpMethod, url, body)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return b, nil
-}
-
-func getUpdates(token string, offset int, timeout int) ([]Update, error) {
-	q := url.Values{}
-	q.Set("offset", strconv.Itoa(offset))
-	q.Set("timeout", strconv.Itoa(timeout))
-
-	var u = url.URL{
-		Scheme:   "https",
-		Host:     "api.telegram.org",
-		Path:     fmt.Sprintf("bot%s/%s", token, "getUpdates"),
-		RawQuery: q.Encode(),
-	}
-
-	resp, err := http.Get(u.String())
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var r Response
-	if err := json.Unmarshal(body, &r); err != nil {
-		return nil, err
-	}
-
-	return r.Result, nil
-}
-
-func sendMessage(chatID int, text string) (Message, error) {
-	var q = make(url.Values)
-	q.Set("chat_id", strconv.Itoa(chatID))
-	q.Set("text", text)
-
-	var u = url.URL{
-		Scheme:   "https",
-		Host:     "api.telegram.org",
-		Path:     fmt.Sprint("bot", os.Getenv("BOT_TOKEN"), "/sendMessage"),
-		RawQuery: q.Encode(),
-	}
-
-	resp, err := http.Get(u.String())
-	if err != nil {
-		return Message{}, err
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-
-	if err != nil {
-		return Message{}, err
-	}
-
-	var r Message
-	if err := json.Unmarshal(body, &r); err != nil {
-		return Message{}, err
-	}
-
-	return r, nil
-}
-
-func sendPhoto(chatID int, filePath string) (message Message, err error) {
-	var u = url.URL{
-		Scheme: "https",
-		Host:   "api.telegram.org",
-		Path:   fmt.Sprint("bot", os.Getenv("BOT_TOKEN"), "/sendPhoto"),
-	}
-
-	file, err := os.Open(filePath)
-	if err != nil {
-		return Message{}, err
-	}
-
-	defer file.Close()
-
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	log.Println(filepath.Base(filePath))
-	chatIDPart, err := writer.CreateFormField("chat_id")
-	if err != nil {
-		return Message{}, err
-	}
-	_, err = chatIDPart.Write([]byte(strconv.Itoa(chatID)))
-	if err != nil {
-		return Message{}, err
-	}
-	contentPart, err := writer.CreateFormFile("photo", filepath.Base(filePath))
-	if err != nil {
-		return Message{}, err
-	}
-	_, err = io.Copy(contentPart, file)
-	if err != nil {
-		return Message{}, err
-	}
-	err = writer.Close()
-	if err != nil {
-		return Message{}, err
-	}
-
-	req, err := http.NewRequest("POST", u.String(), body)
-	req.Header.Add("Content-Type", writer.FormDataContentType())
-
-	res := &http.Client{}
-	resp, err := res.Do(req)
-	if err != nil {
-		return Message{}, err
-	}
-
-	resBody, _ := io.ReadAll(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		return Message{}, fmt.Errorf("status code %d. body %s", resp.StatusCode, resBody)
-	}
-
-	return Message{}, nil
 }
