@@ -72,7 +72,7 @@ func NewBot(botToken string, pollingTimeoutSeconds int, picsFolder string) error
 			pic, _ := regexp.MatchString(`(?i)(gimme a pic)`, command)
 
 			if greetings {
-				_, err := SendMessage(update.Message.Chat.ID, "hi!\n!")
+				_, err := SendMessage(update.Message.Chat.ID, "hi\n!")
 				if err != nil {
 					log.Println(err.Error())
 				}
