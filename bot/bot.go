@@ -85,6 +85,11 @@ func NewBot(botToken string, pollingTimeoutSeconds int, picsFolder string) error
 				if err != nil {
 					log.Println(err.Error())
 				}
+			} else if command == "upload voice" {
+				_, err = SendVoice(update.Message.Chat.ID, "./voice/Marker01.ogg")
+				if err != nil {
+					log.Println(err.Error())
+				}
 			} else {
 				_, err := SendMessage(update.Message.Chat.ID, "i don't know what do you want from me...")
 				if err != nil {
